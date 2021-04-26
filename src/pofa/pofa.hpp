@@ -7,6 +7,14 @@
 namespace pofa {
 
 namespace detail {
+template<typename T, typename Overload>
+struct can_construct_with_overload : std::false_type
+{};
+
+template<typename T, typename...Args>
+struct can_construct_with_overload<T, void(Args...)> : std::is_constructible<T, Args...>
+{};
+
 template<typename Base>
 using safe_unique_ptr = std::conditional_t<
 	std::has_virtual_destructor_v<Base>,
@@ -33,6 +41,12 @@ class creator_of : public detail::ctor_interface<Base, CtorOverload>...
 public:
     template<typename Child>
     static auto instance() -> const creator_of*;
+    
+    template<typename Child>
+    static auto strict_instance() -> std::enable_if_t<(detail::can_construct_with_overload<Child, CtorOverload>::value && ...), const creator_of*>
+    {
+		return instance<Child>();
+    }
     
     using detail::ctor_interface<Base, CtorOverload>::create_unique ...;
     using detail::ctor_interface<Base, CtorOverload>::create_shared ...;
@@ -77,6 +91,9 @@ template<typename Child>
 auto creator_of<Base, CtorOverload...>::instance() -> const creator_of*
 {
     using Interface = creator_of<Base, CtorOverload...>;
+    
+    static_assert((detail::can_construct_with_overload<Child, CtorOverload>::value || ...),
+                  "ensure class can be constructed with at least one required overloads");
     
     static const detail::creator_of_instance<Base, Child, Interface, CtorOverload...> creator;
     return &creator;
