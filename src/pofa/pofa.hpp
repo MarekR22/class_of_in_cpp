@@ -70,7 +70,17 @@ public:
     {
         if constexpr (std::is_constructible_v<Child, FirstCtorArgs...>)
         {
-        	return std::make_unique<Child>(std::forward<FirstCtorArgs>(args)...);
+            if constexpr (std::has_virtual_destructor_v<Base>)
+            {
+            	return std::make_unique<Child>(std::forward<FirstCtorArgs>(args)...);
+            }
+            else
+            {
+                return safe_unique_ptr<Base>{new Child(std::forward<FirstCtorArgs>(args)...),
+                    [](Base *p) {
+                        delete static_cast<Child*>(p);
+                    }};
+            }
         }
         throw std::logic_error{""};
     }

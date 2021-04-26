@@ -1,5 +1,7 @@
 #include <catch2/catch.hpp>
 #include <pofa/pofa.hpp>
+#include <functional>
+
 
 class BaseVdtor {
 public:
@@ -40,6 +42,36 @@ public:
     
     AB() : AB("Default value")
     {}
+};
+
+class BaseStaticDtor {
+public:
+    ~BaseStaticDtor() {
+    }
+    
+    BaseStaticDtor() {}
+    
+    explicit BaseStaticDtor(std::string s) : mS{std::move(s)}
+    {}
+    
+private:
+    std::string mS = "Default";
+};
+
+class D : public BaseStaticDtor
+{
+public:
+    using BaseStaticDtor::BaseStaticDtor;
+
+    ~D() {
+        mF();
+    }
+
+    explicit D(std::function<void()> f) : mF{std::move(f)}
+    {}
+    
+private:
+    std::function<void()> mF = []{};
 };
 
 static_assert(pofa::detail::can_construct_with_overload<A, void(std::string)>::value,
@@ -95,6 +127,17 @@ TEST_CASE("Polymorphic factory")
             REQUIRE_THROWS(maker->create_unique(s));
             REQUIRE_THROWS(maker->create_shared(s));
         }
+    }
+    
+    SECTION("Base class without virtual destructor should be managed by complex unique_ptr") {
+        using ClassOf = pofa::creator_of<BaseStaticDtor, void(), void(std::function<void()>)>;
+        const auto maker = ClassOf::instance<D>();
+        REQUIRE(maker != nullptr);
+        int x = 0;
+        REQUIRE(maker->create_unique([&x]{ x = 3;}));
+        CHECK(x == 3);
+        REQUIRE(maker->create_shared([&x]{ x = 5;}));
+        CHECK(x == 5);
     }
 }
 
