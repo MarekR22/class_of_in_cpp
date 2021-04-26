@@ -35,6 +35,7 @@ public:
     static auto instance() -> const creator_of*;
     
     using detail::ctor_interface<Base, CtorOverload>::create_unique ...;
+    using detail::ctor_interface<Base, CtorOverload>::create_shared ...;
 };
 
 namespace detail {

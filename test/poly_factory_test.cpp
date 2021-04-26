@@ -57,6 +57,7 @@ TEST_CASE("Polymorphic factory")
             
             std::string s{"demo"};
             REQUIRE_THROWS(maker->create_unique(s));
+            REQUIRE_THROWS(maker->create_shared(s));
         }
     }
     
@@ -68,6 +69,7 @@ TEST_CASE("Polymorphic factory")
             maker = ClassOf::instance<B>();
             REQUIRE(maker != nullptr);
             REQUIRE(maker->create_unique() != nullptr);
+            REQUIRE(maker->create_shared() != nullptr);
         }
         
         SECTION("Use none existing constructor") {
@@ -75,6 +77,7 @@ TEST_CASE("Polymorphic factory")
             REQUIRE(maker != nullptr);
             std::string s{"demo"};
             REQUIRE_THROWS(maker->create_unique(s));
+            REQUIRE_THROWS(maker->create_shared(s));
         }
     }
 }
